@@ -242,6 +242,13 @@ func getFieldProtoType(expr ast.Expr) (string, bool, bool) {
 	case *ast.SelectorExpr:
 		// handle imported type
 		fieldType = fmt.Sprintf("%s.%s", t.X.(*ast.Ident).Name, t.Sel.Name)
+	case *ast.MapType:
+		// handle map type
+		fieldType = "map<"
+		keyType, _, _ := getFieldProtoType(t.Key)
+		fieldType += keyType + ", "
+		valueType, _, _ := getFieldProtoType(t.Value)
+		fieldType += valueType + ">"
 	default:
 		fieldType = "google.protobuf.Any"
 	}
