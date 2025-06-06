@@ -23,16 +23,15 @@ type ProtoField struct {
 }
 
 var (
-	inGlob      = pflag.StringP("in", "i", "", "input go file, support glob pattern")
-	outDir      = pflag.StringP("out", "o", "", "output directory")
-	packageName = pflag.StringP("package", "p", "", "package name")
-	baseDir     = pflag.StringP("base", "b", "", "base directory for relative import path")
+	inGlob  = pflag.StringP("in", "i", "", "input go file, support glob pattern")
+	outDir  = pflag.StringP("out", "o", "", "output directory")
+	baseDir = pflag.StringP("base", "b", "", "base directory for relative import path")
 )
 
 func loadFlags() {
 	pflag.Parse()
-	if *inGlob == "" || *outDir == "" || *packageName == "" {
-		fmt.Println("missing input or output directory or package name")
+	if *inGlob == "" || *outDir == "" || *baseDir == "" {
+		fmt.Println("missing input or output directory or base dir")
 		pflag.Usage()
 		os.Exit(1)
 	}
@@ -40,7 +39,7 @@ func loadFlags() {
 		*inGlob = filepath.Join(*inGlob, "*.go")
 	}
 
-	fmt.Println("package name:", *packageName)
+	fmt.Println("base dir:", *baseDir)
 	fmt.Println("input glob pattern:", *inGlob)
 	fmt.Println("output directory:", *outDir)
 }
@@ -92,7 +91,9 @@ func main() {
 		messages := lo.Map(msgList, func(msg string, _idx int) *ProtoMessage {
 			return messagesMap[msg]
 		})
-		protoContent := GenerateProto(messages, *packageName, imports)
+
+		packageName := protoFileName[:strings.LastIndex(protoFileName, ".")]
+		protoContent := GenerateProto(messages, packageName, imports)
 		if err := os.WriteFile(outputPath, []byte(protoContent), 0644); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -286,18 +287,19 @@ func GenerateProto(messages []*ProtoMessage, packageName string, imports []strin
 	sb.WriteString("/* source: https://github.com/Plasmatium/go2pb */\n\n")
 	sb.WriteString("syntax = \"proto3\";\n\n")
 	sb.WriteString("package ")
-	sb.WriteString(packageName)
+	protoPackage := filepath.Base(*baseDir)
+	sb.WriteString(protoPackage)
 	sb.WriteString(";\n\n")
 
 	for _, imp := range imports {
 		if *baseDir != "" {
-			imp = filepath.Join(*baseDir, imp)
+			imp = strings.Join([]string{protoPackage, imp}, "/")
 		}
 		sb.WriteString(fmt.Sprintf("import \"%s\";\n", imp))
 	}
 	sb.WriteString(`option go_package = "`)
-	sb.WriteString(packageName)
-	sb.WriteString(`/";
+	sb.WriteString(*baseDir)
+	sb.WriteString(`";
 
 import "google/protobuf/any.proto";
 import "google/protobuf/duration.proto";

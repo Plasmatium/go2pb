@@ -8,10 +8,9 @@ Usage of /var/folders/x7/c58k11hn46d21b8rf1mvqsyw0000gp/T/go-build1237606447/b00
   -b, --base string      base directory for relative import path
   -i, --in string        input go file, support glob pattern
   -o, --out string       output directory
-  -p, --package string   package name
 
 example:
 go2pb -i./example/*.go -o./example/proto
-go2pb -i ./users/**/*.go -o ./users/proto -p users -b users
+go2pb -i ./users/**/*.go -o ./users/proto -b protodef
 
 ```
